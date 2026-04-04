@@ -1,0 +1,25 @@
+# Ignore all text files
+*.txt
+
+# Ignore competition/sample scripts
+sameple inference script.py
+pre validation script.py
+
+# Ignore tests and local dev artifacts
+tests/
+__pycache__/
+*.pyc
+
+# Ignore system/environment artifacts
+.env
+.ipynb_checkpoints/
+.pytest_cache/
+
+# Explicitly Allow essential files
+!causal_stream_env/
+!server.py
+!inference.py
+!openenv.yaml
+!Dockerfile
+!requirements.txt
+!README.md

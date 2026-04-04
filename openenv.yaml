@@ -1,0 +1,22 @@
+name: causal-stream-v3
+version: "1.0.0"
+description: "A stochastic temporal-causality environment for evaluating agentic data engineering and SRE reasoning."
+tags: ["sre", "data-engineering", "causal-reasoning", "stochastic"]
+
+tasks:
+  - id: "task-1"
+    name: "Structural Join Mismatch"
+    description: "Identify why revenue is missing due to a join error."
+    difficulty: "easy"
+  - id: "task-2"
+    name: "Temporal Jitter Drift"
+    description: "Investigate revenue drops during high network jitter."
+    difficulty: "medium"
+  - id: "task-3"
+    name: "The Multi-Variable Ghost"
+    description: "Diagnose an ambiguous, intermittent drop using counterfactuals."
+    difficulty: "hard"
+
+endpoint: "http://localhost:7860"
+observation_schema: "causal_stream_env.models.Observation"
+action_schema: "causal_stream_env.models.Action"
