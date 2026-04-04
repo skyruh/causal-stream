@@ -17,9 +17,13 @@ dependencies = [
     "pydantic",
     "openai",
     "requests",
-    "pytest"
+    "pytest",
+    "openenv-core>=0.2.0"
 ]
+
+[project.scripts]
+server = "server.app:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["causal_stream_env*"]
+include = ["causal_stream_env*", "server*"]

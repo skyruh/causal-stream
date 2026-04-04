@@ -20,3 +20,7 @@ tasks:
 endpoint: "http://localhost:7860"
 observation_schema: "causal_stream_env.models.Observation"
 action_schema: "causal_stream_env.models.Action"
+
+server:
+  entry: server
+  port: 7860
