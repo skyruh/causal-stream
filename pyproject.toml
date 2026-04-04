@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "causal-stream-v3"
+version = "1.0.0"
+description = "A stochastic temporal-causality environment for evaluating agentic reasoning."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "skyruh" }
+]
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "openai",
+    "requests",
+    "pytest"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["causal_stream_env*"]
