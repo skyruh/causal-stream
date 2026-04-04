@@ -1,3 +1,12 @@
+---
+title: CausalStream
+emoji: 🌊
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+pinned: false
+---
+
 # CausalStream v3: The SRE Oracle 🌊
 
 **A meta-hackathon submission for the OpenEnv Hackathon.**
