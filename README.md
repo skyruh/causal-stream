@@ -1,12 +1,3 @@
----
-title: CausalStream
-emoji: 🌊
-colorFrom: indigo
-colorTo: blue
-sdk: docker
-pinned: false
----
-
 # CausalStream: High-Fidelity SRE Logic Environment
 
 CausalStream is a specialized Reinforcement Learning (RL) environment designed to benchmark and train agents in **temporal causal reasoning** and **resource allocation under uncertainty**. It simulates a complex streaming data infrastructure (Kafka/Flink pattern) where agents must diagnose production incidents.
