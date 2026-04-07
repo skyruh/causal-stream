@@ -51,6 +51,17 @@ class CausalStreamEnv:
                 score += (evidence_score * 0.2)
             
             reward += score
+            # The agent must still submit a post-mortem to finish the episode!
+            
+        if action.type == "submit_postmortem":
+            # Graded on:
+            score = 0.0
+            if action.prevention_action.value == self._get_expected_prevention():
+                score += 0.1
+            if abs(action.impact_duration_ticks - 100) <= 20: 
+                score += 0.1
+            
+            reward += score
             done = True
             
         # Time penalty
@@ -60,6 +71,17 @@ class CausalStreamEnv:
             
         return obs, min(max(reward, -1.0), 1.0), done, {}
 
+    def _get_expected_prevention(self) -> str:
+        mapping = {
+            RootCauseEnum.LATENCY_SPIKE: "increase_timeout",
+            RootCauseEnum.JOIN_FAILURE: "update_schema",
+            RootCauseEnum.DUPLICATE_FLOOD: "block_duplicates",
+            RootCauseEnum.EXPECTED_MAINTENANCE: "scheduled_maintenance_sync",
+            RootCauseEnum.OUT_OF_ORDER: "increase_timeout"
+        }
+        return mapping.get(self.task.ground_truth_cause, "update_schema")
+
     def get_state(self) -> Observation:
+
         return self.engine.get_observation()
 

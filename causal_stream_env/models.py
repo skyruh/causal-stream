@@ -10,6 +10,13 @@ class RootCauseEnum(str, Enum):
     OUT_OF_ORDER = "out_of_order"
     EXPECTED_MAINTENANCE = "expected_maintenance"
 
+class PreventionEnum(str, Enum):
+    INCREASE_TIMEOUT = "increase_timeout"
+    ADD_INDEX = "add_index"
+    BLOCK_DUPLICATES = "block_duplicates"
+    UPDATE_SCHEMA = "update_schema"
+    SCHEDULED_MAINTENANCE_SYNC = "scheduled_maintenance_sync"
+
 class DashboardMetrics(BaseModel):
     revenue: float
     error_rate: float
@@ -22,6 +29,13 @@ class EventSnippet(BaseModel):
     arrival_time: float
     provider: str
     status: str
+    sla_p99_latency_ms: float
+    actual_p99_latency_ms: float
+    sla_breach: bool
+
+class IncidentEvent(BaseModel):
+    tick: int
+    description: str
 
 class StreamSample(BaseModel):
     events: List[EventSnippet]
@@ -74,6 +88,12 @@ class CheckSlaAction(BaseModel):
     type: Literal["check_sla"] = "check_sla"
     provider_id: str
 
+class SubmitPostmortemAction(BaseModel):
+    type: Literal["submit_postmortem"] = "submit_postmortem"
+    timeline: List[IncidentEvent]
+    impact_duration_ticks: int
+    prevention_action: PreventionEnum
+
 Action = Union[
     ReadDashboardAction,
     SampleStreamAction,
@@ -82,5 +102,6 @@ Action = Union[
     PatchAggregatorAction,
     AskCounterfactualAction,
     QueryMetadataAction,
-    CheckSlaAction
+    CheckSlaAction,
+    SubmitPostmortemAction
 ]

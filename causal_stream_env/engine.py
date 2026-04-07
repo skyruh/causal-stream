@@ -32,27 +32,43 @@ class CausalStreamEngine:
             self._generate_event()
 
     def _generate_event(self):
-        """Generates a single event with stochastic latency."""
+        """Generates a single event with stochastic latency and SLA metadata."""
         base_latency = 0.5
         jitter = self.random.uniform(0, 1.0)
         
+        # Inject noise randomly
+        is_phantom = self.random.random() < 0.05  # 5% chance of phantom/corrupted buffer event
+        
         # Inject incident-specific latency
-        if self.active_incident == RootCauseEnum.LATENCY_SPIKE:
+        if self.active_incident == RootCauseEnum.LATENCY_SPIKE and not is_phantom:
             base_latency += 5.0  # Force events outside the 300s window
         
         event_time = time.time() - (100 - len(self.events_buffer))
         arrival_time = event_time + base_latency + jitter
         
+        actual_latency_ms = (arrival_time - event_time) * 1000.0
+        sla_ms = 1000.0
+        
         event = EventSnippet(
             event_id=f"evt_{self.random.getrandbits(32)}",
             event_time=event_time,
             arrival_time=arrival_time,
-            provider="Stripe-Sim",
-            status="success"
+            provider="Stripe-Sim" if not is_phantom else "corrupted_buffer",
+            status="success",
+            sla_p99_latency_ms=sla_ms,
+            actual_p99_latency_ms=actual_latency_ms,
+            sla_breach=actual_latency_ms > sla_ms
         )
         self.events_buffer.append(event)
+        
+        # Duplicate occasionally
+        if self.random.random() < 0.02:
+            dup_event = copy.deepcopy(event)
+            dup_event.arrival_time += self.random.uniform(0, 0.5)
+            self.events_buffer.append(dup_event)
+            
         if len(self.events_buffer) > 500:
-            self.events_buffer.pop(0)
+            self.events_buffer = self.events_buffer[-500:]
 
     def tick(self, count: int = 1):
         """Increments the world clock and updates the stream."""
