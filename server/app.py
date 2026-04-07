@@ -7,6 +7,10 @@ import uvicorn
 app = FastAPI(title="CausalStream OpenEnv Server")
 envs = {}
 
+@app.get("/")
+def read_root():
+    return {"status": "ok", "message": "CausalStream OpenEnv Server is running!"}
+
 @app.post("/reset")
 def reset(task_id: Optional[int] = 1):
     # Validator pings /reset with {} and no params
