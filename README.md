@@ -31,12 +31,21 @@ To prove a hypothesis, agents can execute **Counterfactual Actions**.
 - **Mechanism**: The engine forks the internal state and simulates what the metrics *would have been* if a variable (like the late-arrival window) was modified. 
 - **Significance**: This forces agents to move beyond pattern matching and perform true scientific experimentation.
 
-## ⚖️ Deterministic Grading & F1 Evidence
+## ⚖️ Deterministic Grading & F1 Evidence Scoring
 
-CausalStream solves the "Subjective Reasoning" problem by requiring agents to submit a structured **Theory**.
-- **The Theory**: Consists of a `RootCauseEnum` (e.g., `OUT_OF_ORDER`) and a `List[Evidence]`.
-- **F1 Scoring**: The grader calculates the **Precision and Recall** of the submitted evidence tokens. 
-  - To get a 1.0 (Full Credit), an agent must identify the correct cause AND provide exactly the evidence tokens (specific IDs or timestamps) that prove that cause without including "noise" tokens.
+CausalStream solves the "Subjective Reasoning" problem by requiring agents to submit a structured **Theory**. The environment enforces strict, deterministic grading based on the F1 score of evidence retrieval.
+
+- **The Theory**: The agent submits a `RootCauseEnum` (e.g., `OUT_OF_ORDER`) and a `List[Evidence]` (specific JSON tracking keys or IDs).
+- **The Formula**:
+  - `Precision = True_Positives / (True_Positives + False_Positives)`
+  - `Recall = True_Positives / (True_Positives + False_Negatives)`
+  - `F1_Score = 2 * (Precision * Recall) / (Precision + Recall)`
+- **Scoring Bounds**:
+  - Incorrect cause: `0.0`.
+  - Correct cause: Exactly mathematically matches the F1 bound of `(0.0, 1.0]`.
+
+### 🛡️ Anti-Reward Hacking (Exploit Guardrails)
+To prevent agents from "loop farming" API endpoints (Reward Hacking), all tools exist within a **Stateful Tracking Set**. A specific semantic action type is only rewarded *once* per episode. If an agent loops `sample_stream` indefinitely, the reward collapses to +0.00.
 
 ## 🚀 Technical Setup
 
