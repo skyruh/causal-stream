@@ -84,7 +84,6 @@ class CausalStreamEngine:
         obs = self.get_observation()
         
         if action.type == "read_dashboard":
-            # 0 Ticks
             pass
         elif action.type == "sample_stream":
             self.tick(1)
@@ -100,10 +99,22 @@ class CausalStreamEngine:
                 obs.inspected_lineage = self.sql_models[action.model_id]
         elif action.type == "ask_counterfactual":
             self.tick(2) # Counterfactuals are expensive
-            # Logic for counterfactual math can go here
             obs = self.get_observation()
-            # We would typically add a "counterfactual_result" toast to alerts
             obs.alert_feed.append(f"Counterfactual: With window offset {action.window_offset}s, Revenue would be {obs.dashboard.revenue * 1.05:.2f}")
+        elif action.type == "query_metadata":
+            self.tick(1)
+            obs = self.get_observation()
+            if self.active_incident == RootCauseEnum.EXPECTED_MAINTENANCE:
+                obs.alert_feed.append(f"Metadata Query [{action.table_name}]: MAINT_WINDOW_0800_1000 matched. SYSTEM_EVENTS_METADATA shows maintenance occurred.")
+            else:
+                obs.alert_feed.append(f"Metadata Query [{action.table_name}]: Normal. No maintenance logs found.")
+        elif action.type == "check_sla":
+            self.tick(1)
+            obs = self.get_observation()
+            if self.active_incident == RootCauseEnum.LATENCY_SPIKE:
+                obs.alert_feed.append(f"SLA Check [{action.provider_id}]: SLA_BREACH_STRIPE true, P99 is > 3000ms.")
+            else:
+                obs.alert_feed.append(f"SLA Check [{action.provider_id}]: SLA met. P99 is nominal.")
             
         return obs
 

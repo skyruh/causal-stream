@@ -16,6 +16,10 @@ tasks:
     name: "The Multi-Variable Ghost"
     description: "Diagnose an ambiguous, intermittent drop using counterfactuals."
     difficulty: "hard"
+  - id: "task-4"
+    name: "The Red Herring Storm"
+    description: "Diagnose a 15% revenue drop hidden among red herrings."
+    difficulty: "adversarial"
 
 endpoint: "http://localhost:7860"
 observation_schema: "causal_stream_env.models.Observation"

@@ -8,6 +8,7 @@ class RootCauseEnum(str, Enum):
     DUPLICATE_FLOOD = "duplicate_flood"
     SCHEMA_DRIFT = "schema_drift"
     OUT_OF_ORDER = "out_of_order"
+    EXPECTED_MAINTENANCE = "expected_maintenance"
 
 class DashboardMetrics(BaseModel):
     revenue: float
@@ -65,11 +66,21 @@ class AskCounterfactualAction(BaseModel):
     type: Literal["ask_counterfactual"] = "ask_counterfactual"
     window_offset: int = Field(description="Seconds to add to the aggregation window")
 
+class QueryMetadataAction(BaseModel):
+    type: Literal["query_metadata"] = "query_metadata"
+    table_name: str
+
+class CheckSlaAction(BaseModel):
+    type: Literal["check_sla"] = "check_sla"
+    provider_id: str
+
 Action = Union[
     ReadDashboardAction,
     SampleStreamAction,
     InspectLineageAction,
     SubmitTheoryAction,
     PatchAggregatorAction,
-    AskCounterfactualAction
+    AskCounterfactualAction,
+    QueryMetadataAction,
+    CheckSlaAction
 ]

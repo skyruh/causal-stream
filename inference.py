@@ -70,10 +70,13 @@ def run_agent(task_id: int):
         elif task_id == 2:
             cause = "out_of_order"
             evidence = ["ARRIVAL_GT_EVENT_TIME"]
-        else:
+        elif task_id == 3:
             cause = "latency_spike"
             # Partial evidence to ensure score < 1.0 for evaluator validation
             evidence = ["STRIPE_WEBHOOK_DELAY"]
+        else:
+            cause = "expected_maintenance"
+            evidence = ["MAINT_WINDOW_0800_1000"]
 
         theory_action = {
             "type": "submit_theory",
@@ -94,5 +97,5 @@ def run_agent(task_id: int):
     print(f"[END] success={str(success).lower()} steps={steps_taken} score={score:.2f} rewards={','.join([f'{r:.2f}' for r in rewards])}", flush=True)
 
 if __name__ == "__main__":
-    for tid in [1, 2, 3]:
+    for tid in [1, 2, 3, 4]:
         run_agent(tid)

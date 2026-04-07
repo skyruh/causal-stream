@@ -55,3 +55,13 @@ class Task3(CausalTask):
         )
         self.ground_truth_cause = RootCauseEnum.LATENCY_SPIKE
         self.ground_truth_evidence = {"STRIPE_WEBHOOK_DELAY", "P99_LATENCY_3000MS"}
+
+class Task4(CausalTask):
+    def __init__(self):
+        super().__init__(
+            "The Red Herring Storm", 
+            "Adversarial", 
+            "Diagnose a 15% revenue drop hidden among red herrings like high latency and join mismatches."
+        )
+        self.ground_truth_cause = RootCauseEnum.EXPECTED_MAINTENANCE
+        self.ground_truth_evidence = {"MAINT_WINDOW_0800_1000", "SYSTEM_EVENTS_METADATA"}
