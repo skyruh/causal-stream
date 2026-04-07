@@ -5,7 +5,7 @@ from typing import List, Dict, Any, Optional
 from .models import (
     Observation, DashboardMetrics, StreamSample, EventSnippet, 
     SQLModel, RootCauseEnum, Action, ReadDashboardAction,
-    SampleStreamAction, InspectLineageAction, SimulateConfigChangeAction
+    SampleStreamAction, InspectLineageAction, AskCounterfactualAction
 )
 
 class CausalStreamEngine:
