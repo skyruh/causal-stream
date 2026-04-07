@@ -64,10 +64,20 @@ def run_agent(task_id: int):
 
     # Logic: Stage 2 - Submit Theory
     if not done:
+        if task_id == 1:
+            cause = "join_failure"
+            evidence = ["NULL_KEY_ERR"]
+        elif task_id == 2:
+            cause = "out_of_order"
+            evidence = ["ARRIVAL_GT_EVENT_TIME"]
+        else:
+            cause = "latency_spike"
+            evidence = ["STRIPE_WEBHOOK_DELAY", "P99_LATENCY_3000MS"]
+
         theory_action = {
             "type": "submit_theory",
-            "cause": "join_failure" if task_id == 1 else "out_of_order",
-            "evidence": ["NULL_KEY_ERR"] if task_id == 1 else ["ARRIVAL_GT_EVENT_TIME"]
+            "cause": cause,
+            "evidence": evidence
         }
         final_resp = step_env(task_id, theory_action)
         
@@ -83,5 +93,5 @@ def run_agent(task_id: int):
     print(f"[END] success={str(success).lower()} steps={steps_taken} score={score:.2f} rewards={','.join([f'{r:.2f}' for r in rewards])}", flush=True)
 
 if __name__ == "__main__":
-    for tid in [1, 2]:
+    for tid in [1, 2, 3]:
         run_agent(tid)
