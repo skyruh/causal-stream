@@ -4,3 +4,5 @@ pydantic
 openai
 pytest
 python-multipart
+requests
+openenv-core>=0.2.0
