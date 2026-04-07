@@ -43,7 +43,9 @@ class CausalStreamEngine:
         if self.active_incident == RootCauseEnum.LATENCY_SPIKE and not is_phantom:
             base_latency += 5.0  # Force events outside the 300s window
         
-        event_time = time.time() - (100 - len(self.events_buffer))
+        # Use a true deterministic clock, NOT time.time()
+        base_epoch = 1700000000.0
+        event_time = base_epoch + self.current_tick - (100 - len(self.events_buffer))
         arrival_time = event_time + base_latency + jitter
         
         actual_latency_ms = (arrival_time - event_time) * 1000.0
@@ -113,24 +115,24 @@ class CausalStreamEngine:
             obs = self.get_observation()
             if action.model_id in self.sql_models:
                 obs.inspected_lineage = self.sql_models[action.model_id]
-        elif action.type == "ask_counterfactual":
-            self.tick(2) # Counterfactuals are expensive
+        elif action.type == "simulate_config_change":
+            self.tick(2) # Simulations are expensive
             obs = self.get_observation()
-            obs.alert_feed.append(f"Counterfactual: With window offset {action.window_offset}s, Revenue would be {obs.dashboard.revenue * 1.05:.2f}")
-        elif action.type == "query_metadata":
+            obs.alert_feed.append(f"Simulation: Changed {action.config_param} to {action.value}. Revenue would be {obs.dashboard.revenue * 1.05:.2f}")
+        elif action.type == "query_system_logs":
             self.tick(1)
             obs = self.get_observation()
             if self.active_incident == RootCauseEnum.EXPECTED_MAINTENANCE:
-                obs.alert_feed.append(f"Metadata Query [{action.table_name}]: MAINT_WINDOW_0800_1000 matched. SYSTEM_EVENTS_METADATA shows maintenance occurred.")
+                obs.alert_feed.append(f"System Logs [{action.log_name}]: MAINT_WINDOW_0800_1000 matched. SYSTEM_EVENTS shows maintenance occurred.")
             else:
-                obs.alert_feed.append(f"Metadata Query [{action.table_name}]: Normal. No maintenance logs found.")
-        elif action.type == "check_sla":
+                obs.alert_feed.append(f"System Logs [{action.log_name}]: Normal. No maintenance logs found.")
+        elif action.type == "query_provider_contract":
             self.tick(1)
             obs = self.get_observation()
             if self.active_incident == RootCauseEnum.LATENCY_SPIKE:
-                obs.alert_feed.append(f"SLA Check [{action.provider_id}]: SLA_BREACH_STRIPE true, P99 is > 3000ms.")
+                obs.alert_feed.append(f"Contract Check [{action.provider_id}]: SLA_BREACH_STRIPE true, P99 is > 3000ms.")
             else:
-                obs.alert_feed.append(f"SLA Check [{action.provider_id}]: SLA met. P99 is nominal.")
+                obs.alert_feed.append(f"Contract Check [{action.provider_id}]: SLA met. P99 is nominal.")
             
         return obs
 

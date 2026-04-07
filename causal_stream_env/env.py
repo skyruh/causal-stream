@@ -36,11 +36,11 @@ class CausalStreamEnv:
                 reward += 0.10
             elif action.type == "inspect_lineage":
                 reward += 0.10
-            elif action.type == "ask_counterfactual":
+            elif action.type == "simulate_config_change":
                 reward += 0.15
-            elif action.type == "query_metadata":
+            elif action.type == "query_system_logs":
                 reward += 0.10
-            elif action.type == "check_sla":
+            elif action.type == "query_provider_contract":
                 reward += 0.10
 
         if action.type == "submit_theory":

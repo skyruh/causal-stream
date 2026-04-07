@@ -76,16 +76,17 @@ class PatchAggregatorAction(BaseModel):
     model_id: str
     new_sql: str
 
-class AskCounterfactualAction(BaseModel):
-    type: Literal["ask_counterfactual"] = "ask_counterfactual"
-    window_offset: int = Field(description="Seconds to add to the aggregation window")
+class SimulateConfigChangeAction(BaseModel):
+    type: Literal["simulate_config_change"] = "simulate_config_change"
+    config_param: str = Field(description="The configuration parameter to change (e.g. 'aggregation_window')")
+    value: int = Field(description="The new value to simulate")
 
-class QueryMetadataAction(BaseModel):
-    type: Literal["query_metadata"] = "query_metadata"
-    table_name: str
+class QuerySystemLogsAction(BaseModel):
+    type: Literal["query_system_logs"] = "query_system_logs"
+    log_name: str
 
-class CheckSlaAction(BaseModel):
-    type: Literal["check_sla"] = "check_sla"
+class QueryProviderContractAction(BaseModel):
+    type: Literal["query_provider_contract"] = "query_provider_contract"
     provider_id: str
 
 class SubmitPostmortemAction(BaseModel):
@@ -100,8 +101,8 @@ Action = Union[
     InspectLineageAction,
     SubmitTheoryAction,
     PatchAggregatorAction,
-    AskCounterfactualAction,
-    QueryMetadataAction,
-    CheckSlaAction,
+    SimulateConfigChangeAction,
+    QuerySystemLogsAction,
+    QueryProviderContractAction,
     SubmitPostmortemAction
 ]

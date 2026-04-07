@@ -26,8 +26,8 @@ def run_agent(task_id: int):
         {"type": "read_dashboard"},
         {"type": "sample_stream", "sample_size": 20},
         {"type": "inspect_lineage", "model_id": "aggregator"},
-        {"type": "query_metadata", "table_name": "system_events"},
-        {"type": "check_sla", "provider_id": "Stripe-Sim"},
+        {"type": "query_system_logs", "log_name": "system_events"},
+        {"type": "query_provider_contract", "provider_id": "Stripe-Sim"},
         {"type": "submit_theory", "cause": "latency_spike", "evidence": []},
         {"type": "submit_postmortem", "timeline": [{"tick": 0, "description": "Random guess"}], "impact_duration_ticks": 100, "prevention_action": "update_schema"}
     ]
