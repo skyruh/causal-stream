@@ -1,7 +1,7 @@
 name: causal-stream-v3
 version: "1.0.0"
 description: "A stochastic temporal-causality environment for evaluating agentic data engineering and SRE reasoning."
-tags: ["sre", "data-engineering", "causal-reasoning", "stochastic"]
+tags: ["openenv", "sre", "data-engineering", "causal-reasoning", "stochastic"]
 
 tasks:
   - id: "task-1"
