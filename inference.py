@@ -2,117 +2,94 @@ import os
 import requests
 import json
 from openai import OpenAI
-from typing import Dict, Any
 
-# --- Configuration (Official Checklist Names) ---
-# LLM Endpoint Config
+# LLM Config
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o")
 API_KEY = os.getenv("API_KEY", os.getenv("HF_TOKEN", ""))
-
-# Environment Endpoint (Defaults to local server)
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o")
 ENV_URL = os.getenv("ENV_URL", "http://localhost:7860")
 
-# OpenAI Client Initialization required by validator
 client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY) if API_KEY else None
 
-if not client:
-    print("Warning: API_KEY not found. Running in MOCK REASONING mode without proxy tracking.")
+TOOLS = [
+    {"type": "function", "function": {"name": "read_dashboard", "description": "Read the top-level metrics dashboard.", "parameters": {"type": "object", "properties": {}}}},
+    {"type": "function", "function": {"name": "sample_stream", "description": "Pull raw events from the stream.", "parameters": {"type": "object", "properties": {"sample_size": {"type": "integer", "description": "Number of events to sample (1-100)"}}, "required": ["sample_size"]}}},
+    {"type": "function", "function": {"name": "inspect_lineage", "description": "Inspect the SQL definition of a model.", "parameters": {"type": "object", "properties": {"model_id": {"type": "string"}}, "required": ["model_id"]}}},
+    {"type": "function", "function": {"name": "query_system_logs", "description": "Query system metadata or maintenance logs.", "parameters": {"type": "object", "properties": {"log_name": {"type": "string"}}, "required": ["log_name"]}}},
+    {"type": "function", "function": {"name": "query_provider_contract", "description": "Check the SLA contract for a specific provider.", "parameters": {"type": "object", "properties": {"provider_id": {"type": "string"}}, "required": ["provider_id"]}}},
+    {"type": "function", "function": {"name": "simulate_config_change", "description": "Simulate what metrics would be if a config parameter changed.", "parameters": {"type": "object", "properties": {"config_param": {"type": "string"}, "value": {"type": "integer"}}, "required": ["config_param", "value"]}}},
+    {"type": "function", "function": {"name": "submit_theory", "description": "Submit a diagnosis for the root cause. This must be done before the postmortem.", "parameters": {"type": "object", "properties": {"cause": {"type": "string", "enum": ["latency_spike", "join_failure", "duplicate_flood", "schema_drift", "out_of_order", "expected_maintenance"]}, "evidence": {"type": "array", "items": {"type": "string"}}}, "required": ["cause", "evidence"]}}},
+    {"type": "function", "function": {"name": "submit_postmortem", "description": "Conclude the incident with a final postmortem. This permanently ends the episode.", "parameters": {"type": "object", "properties": {"timeline": {"type": "array", "items": {"type": "object", "properties": {"tick": {"type": "integer"}, "description": {"type": "string"}}}}, "impact_duration_ticks": {"type": "integer"}, "prevention_action": {"type": "string", "enum": ["increase_timeout", "add_index", "block_duplicates", "update_schema", "scheduled_maintenance_sync"]}}, "required": ["timeline", "impact_duration_ticks", "prevention_action"]}}}
+]
 
 def reset_env(task_id: int):
-    resp = requests.post(f"{ENV_URL}/reset?task_id={task_id}", json={})
-    return resp.json()
+    return requests.post(f"{ENV_URL}/reset?task_id={task_id}", json={}).json()
 
-def step_env(task_id: int, action: Dict[str, Any]):
-    resp = requests.post(f"{ENV_URL}/step?task_id={task_id}", json=action)
-    return resp.json()
+def step_env(task_id: int, action: dict):
+    return requests.post(f"{ENV_URL}/step?task_id={task_id}", json=action).json()
 
 def run_agent(task_id: int):
     task_name = f"task-{task_id}"
-    benchmark = "causal-stream-v3"
-    
-    print(f"[START] task={task_name} env={benchmark} model={MODEL_NAME}", flush=True)
-    
-    if client:
-        try:
-            # Perform a minimal API call to register usage with the judging proxy
-            client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=[{"role": "user", "content": f"Initializing diagnostics for {task_name}"}],
-                max_tokens=5
-            )
-        except Exception:
-            pass
-    
+    print(f"[START] task={task_name} env=causal-stream-v3 model={MODEL_NAME}-LLM", flush=True)
     obs = reset_env(task_id)
     
-    rewards = []
+    if not client:
+        print(f"[END] success=false steps=0 score=0.00 rewards=", flush=True)
+        return
+
+    messages = [
+        {"role": "system", "content": "You are a Senior SRE agent diagnosing data pipeline issues. You must use tools to investigate state (e.g. read_dashboard). Then use submit_theory to log your hypothesis, followed by submit_postmortem to end the episode."},
+        {"role": "user", "content": f"Please diagnose the issue for {task_name}. You start with no context, call read_dashboard immediately."}
+    ]
+    
     steps_taken = 0
     done = False
+    rewards = []
     
-    # Logic: Stage 1 - Sample Stream
-    action = {"type": "sample_stream", "sample_size": 20}
-    step_resp = step_env(task_id, action)
-    
-    obs = step_resp['observation']
-    reward = step_resp['reward']
-    done = step_resp['done']
-    rewards.append(reward)
-    steps_taken += 1
-    
-    print(f"[STEP] step={steps_taken} action={action['type']} reward={reward:.2f} done={str(done).lower()} error=null", flush=True)
-
-    # Logic: Stage 2 - Submit Theory
-    if not done:
-        if task_id == 1:
-            cause = "join_failure"
-            evidence = ["NULL_KEY_ERR"]
-        elif task_id == 2:
-            cause = "out_of_order"
-            evidence = ["ARRIVAL_GT_EVENT_TIME"]
-        elif task_id == 3:
-            cause = "latency_spike"
-            # Partial evidence to ensure score < 1.0 for evaluator validation
-            evidence = ["STRIPE_WEBHOOK_DELAY"]
-        else:
-            cause = "expected_maintenance"
-            evidence = ["MAINT_WINDOW_0800_1000"]
-
-        theory_action = {
-            "type": "submit_theory",
-            "cause": cause,
-            "evidence": evidence
-        }
-        theory_resp = step_env(task_id, theory_action)
-        
-        reward = theory_resp['reward']
-        done = theory_resp['done']
-        rewards.append(reward)
-        steps_taken += 1
-        print(f"[STEP] step={steps_taken} action=submit_theory reward={reward:.2f} done={str(done).lower()} error=null", flush=True)
-
-    # Logic: Stage 3 - Submit Postmortem
-    if not done:
-        prevention = "update_schema"
-        if task_id in [2, 3]:
-            prevention = "increase_timeout"
-        elif task_id == 4:
-            prevention = "scheduled_maintenance_sync"
+    try:
+        while not done and steps_taken < 15:
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=messages,
+                tools=TOOLS,
+                tool_choice="auto"
+            )
+            msg = response.choices[0].message
+            # Append assistant message properly
+            assistant_msg = {"role": "assistant"}
+            if msg.content: assistant_msg["content"] = msg.content
+            if msg.tool_calls: assistant_msg["tool_calls"] = [{"id": t.id, "type": "function", "function": {"name": t.function.name, "arguments": t.function.arguments}} for t in msg.tool_calls]
+            messages.append(assistant_msg)
             
-        postmortem_action = {
-            "type": "submit_postmortem",
-            "timeline": [{"tick": 50, "description": "Anomaly started"}],
-            "impact_duration_ticks": 100,
-            "prevention_action": prevention
-        }
-        final_resp = step_env(task_id, postmortem_action)
-        
-        reward = final_resp['reward']
-        done = final_resp['done']
-        rewards.append(reward)
-        steps_taken += 1
-        
-        print(f"[STEP] step={steps_taken} action=submit_postmortem reward={reward:.2f} done={str(done).lower()} error=null", flush=True)
+            if msg.tool_calls:
+                for tc in msg.tool_calls:
+                    func_name = tc.function.name
+                    args = json.loads(tc.function.arguments)
+                    
+                    action_payload = args.copy()
+                    action_payload["type"] = func_name
+                    
+                    res = step_env(task_id, action_payload)
+                    rewards.append(res['reward'])
+                    done = res['done']
+                    steps_taken += 1
+                    
+                    print(f"[STEP] step={steps_taken} action={func_name} reward={res['reward']:.2f} done={str(done).lower()} error=null", flush=True)
+                    
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tc.id,
+                        "name": func_name,
+                        "content": json.dumps(res['observation'])
+                    })
+                    
+                    if done:
+                        break
+            else:
+                messages.append({"role": "user", "content": "Please invoke a tool to continue your investigation."})
+                steps_taken += 1
+    except Exception as e:
+        print(f"Agent failed with error: {e}")
 
     success = sum(rewards) > 0.5
     score = sum(rewards)
@@ -121,3 +98,4 @@ def run_agent(task_id: int):
 if __name__ == "__main__":
     for tid in [1, 2, 3, 4]:
         run_agent(tid)
+
