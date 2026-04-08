@@ -139,14 +139,14 @@ class CausalStreamEngine:
             self.tick(1)
             obs = self.get_observation()
             if self.active_incident == RootCauseEnum.EXPECTED_MAINTENANCE:
-                obs.alert_feed.append(f"System Logs [{action.log_name}]: MAINT_WINDOW_0800_1000 matched. SYSTEM_EVENTS shows maintenance occurred.")
+                obs.alert_feed.append(f"System Logs [{action.log_name}]: MAINT_WINDOW_0800_1000 matched. SYSTEM_EVENTS_METADATA trace confirmed.")
             else:
                 obs.alert_feed.append(f"System Logs [{action.log_name}]: Normal. No maintenance logs found.")
         elif action.type == "query_provider_contract":
             self.tick(1)
             obs = self.get_observation()
             if self.active_incident == RootCauseEnum.LATENCY_SPIKE:
-                obs.alert_feed.append(f"Contract Check [{action.provider_id}]: SLA_BREACH_STRIPE true, P99 is > 3000ms.")
+                obs.alert_feed.append(f"Contract Check [{action.provider_id}]: SLA_BREACH_STRIPE true, STRIPE_WEBHOOK_DELAY verified, P99_LATENCY_3000MS exceeded.")
             else:
                 obs.alert_feed.append(f"Contract Check [{action.provider_id}]: SLA met. P99 is nominal.")
             
