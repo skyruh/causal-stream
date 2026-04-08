@@ -31,35 +31,33 @@ class CausalStreamEnv:
         if action.type not in self.action_history_rewards:
             self.action_history_rewards.add(action.type)
             if action.type == "read_dashboard":
-                reward += 0.05
+                reward += 0.10 # Base participation reward
             elif action.type == "sample_stream":
-                reward += 0.10
+                reward += 0.02
             elif action.type == "inspect_lineage":
-                reward += 0.10
+                reward += 0.02
             elif action.type == "simulate_config_change":
-                reward += 0.15
+                reward += 0.03
             elif action.type == "query_system_logs":
-                reward += 0.10
+                reward += 0.02
             elif action.type == "query_provider_contract":
-                reward += 0.10
+                reward += 0.02
 
         if action.type == "submit_theory":
             score = 0.0
             if action.cause == self.task.ground_truth_cause:
-                score += 0.2
+                score += 0.30
                 evidence_score = TaskGrader.calculate_f1(action.evidence, self.task.ground_truth_evidence)
-                score += (evidence_score * 0.2)
+                score += (evidence_score * 0.20)
             
             reward += score
-            # The agent must still submit a post-mortem to finish the episode!
             
         if action.type == "submit_postmortem":
-            # Graded on:
             score = 0.0
             if action.prevention_action.value == self._get_expected_prevention():
-                score += 0.1
+                score += 0.10
             if abs(action.impact_duration_ticks - 100) <= 20: 
-                score += 0.1
+                score += 0.10
             
             reward += score
             done = True

@@ -32,6 +32,7 @@ class EventSnippet(BaseModel):
     sla_p99_latency_ms: float
     actual_p99_latency_ms: float
     sla_breach: bool
+    evidence_tokens: List[str] = []
 
 class IncidentEvent(BaseModel):
     tick: int

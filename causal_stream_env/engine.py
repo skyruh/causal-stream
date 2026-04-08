@@ -32,18 +32,33 @@ class CausalStreamEngine:
             self._generate_event()
 
     def _generate_event(self):
-        """Generates a single event with stochastic latency and SLA metadata."""
+        """Generates a single event with stochastic latency and incident evidence."""
         base_latency = 0.5
         jitter = self.random.uniform(0, 1.0)
+        status = "success"
+        evidence_tokens = []
+        is_phantom = self.random.random() < 0.05
         
-        # Inject noise randomly
-        is_phantom = self.random.random() < 0.05  # 5% chance of phantom/corrupted buffer event
-        
-        # Inject incident-specific latency
+        # Incident logic
         if self.active_incident == RootCauseEnum.LATENCY_SPIKE and not is_phantom:
-            base_latency += 5.0  # Force events outside the 300s window
+            base_latency += 5.0
+            if self.random.random() < 0.2:
+                evidence_tokens.append("STRIPE_WEBHOOK_DELAY")
+                evidence_tokens.append("P99_LATENCY_3000MS")
         
-        # Use a true deterministic clock, NOT time.time()
+        elif self.active_incident == RootCauseEnum.JOIN_FAILURE and not is_phantom:
+            if self.random.random() < 0.3:
+                status = "error"
+                evidence_tokens.append("NULL_KEY_ERR")
+                evidence_tokens.append("JOIN_MISMATCH_404")
+        
+        elif self.active_incident == RootCauseEnum.OUT_OF_ORDER and not is_phantom:
+            jitter += 350.0  # Force it past the 300s window
+            if self.random.random() < 0.2:
+                evidence_tokens.append("ARRIVAL_GT_EVENT_TIME")
+                evidence_tokens.append("WINDOW_TIMEOUT")
+
+        # Use a true deterministic clock
         base_epoch = 1700000000.0
         event_time = base_epoch + self.current_tick - (100 - len(self.events_buffer))
         arrival_time = event_time + base_latency + jitter
@@ -56,10 +71,11 @@ class CausalStreamEngine:
             event_time=event_time,
             arrival_time=arrival_time,
             provider="Stripe-Sim" if not is_phantom else "corrupted_buffer",
-            status="success",
+            status=status,
             sla_p99_latency_ms=sla_ms,
             actual_p99_latency_ms=actual_latency_ms,
-            sla_breach=actual_latency_ms > sla_ms
+            sla_breach=actual_latency_ms > sla_ms,
+            evidence_tokens=evidence_tokens
         )
         self.events_buffer.append(event)
         
