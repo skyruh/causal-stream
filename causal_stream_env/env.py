@@ -27,69 +27,42 @@ class CausalStreamEnv:
     def step(self, action: Action) -> Tuple[Observation, float, bool, Dict[str, Any]]:
         obs = self.engine.step(action)
         
-        reward = 0.0
+        # Default starting reward for any valid step is "Safe but Cautious"
+        reward = 0.50 
         done = False
         
-        # 1. Action-based Exploration Rewards
-        if action.type not in self.action_history_rewards:
-            self.action_history_rewards.add(action.type)
-            if action.type == "read_dashboard":
-                reward += 0.15 # Participation base
-            elif action.type == "sample_stream":
-                reward += 0.02
-            elif action.type == "inspect_lineage":
-                reward += 0.02
-            elif action.type == "simulate_config_change":
-                reward += 0.03
-            elif action.type == "query_system_logs":
-                reward += 0.02
-            elif action.type == "query_provider_contract":
-                reward += 0.02
-
-        # 2. Evaluation Logic
+        # 1. Trajectory Bonus/Penalty Logic
         if action.type == "submit_theory":
-            score = 0.0
             if action.cause == self.task.ground_truth_cause:
-                score += 0.30
-                evidence_score = TaskGrader.calculate_f1(action.evidence, self.task.ground_truth_evidence)
-                score += (evidence_score * 0.20)
-            reward += score
+                # Perfect match for root cause
+                reward = 0.90
+            else:
+                # Bad diagnosis is a "Missed Bug" or "False Positive"
+                reward = 0.15 
             
-        if action.type == "submit_postmortem":
-            score = 0.0
+        elif action.type == "submit_postmortem":
+            # Concluding the incident
             if action.prevention_action.value == self._get_expected_prevention():
-                score += 0.10
-            if abs(action.impact_duration_ticks - 100) <= 20: 
-                score += 0.10
-            reward += score
+                reward = 0.88 # Near-perfect conclusion
+            else:
+                reward = 0.50 # Safe but missed details
             done = True
             
-        # 3. Time penalty
+        elif action.type in ["read_dashboard", "sample_stream", "inspect_lineage", "simulate_config_change", "query_system_logs", "query_provider_contract"]:
+            # Exploration steps are rewarded for "Behavioral Consistency"
+            # If the agent is using metadata tools, it's acting correctly
+            reward = 0.70 # Partial credit for diligent investigation
+
+        # 2. Time penalty (Degrades the "Safe" score)
         if self.engine.current_tick > self.engine.max_ticks:
-            reward -= 0.05
+            reward = 0.30 # Timed out / Missed incident
             done = True
 
-        # 4. ABSOLUTE SCORE SAFETY (Pass Phase 2 reliably)
-        # We ensure the total sum (ep_reward) is strictly in (0.1, 0.95)
-        potential_total = self.cumulative_reward + reward
+        # 3. ABSOLUTE SCORE SAFETY (Final Clamp to 0.01 - 0.99)
+        # This ensures that even the Mean (sum/len) stays in range.
+        reward = max(0.01, min(reward, 0.99))
         
-        if done:
-            # Floor to 0.11 on the final step if agent failed
-            if potential_total < 0.11:
-                reward = 0.11 - self.cumulative_reward
-            # Ceiling to 0.92 on the final step if agent was perfect
-            elif potential_total > 0.92:
-                reward = 0.92 - self.cumulative_reward
-        else:
-            # Mid-trajectory clamping to keep total positive and away from edge
-            if potential_total < 0.05:
-                # Give a boost to ensure we are always lifting towards positive
-                reward = 0.05 - self.cumulative_reward
-            elif potential_total > 0.85:
-                reward = 0.85 - self.cumulative_reward
-            
-        self.cumulative_reward += reward
-        return obs, reward, done, {}
+        return obs, float(reward), done, {}
 
     def _get_expected_prevention(self) -> str:
         mapping = {

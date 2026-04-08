@@ -91,8 +91,9 @@ def run_agent(task_id: int):
     except Exception as e:
         print(f"Agent failed with error: {e}")
 
-    success = sum(rewards) > 0.5
-    score = sum(rewards)
+    steps_taken = len(rewards)
+    score = sum(rewards) / steps_taken if steps_taken > 0 else 0.01
+    success = score > 0.5
     print(f"[END] success={str(success).lower()} steps={steps_taken} score={score:.2f} rewards={','.join([f'{r:.2f}' for r in rewards])}", flush=True)
 
 if __name__ == "__main__":
